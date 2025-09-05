@@ -1,30 +1,33 @@
 // backend/src/db.js
-import pkg from "pg";
-const { Pool } = pkg;
+import pg from "pg";
+const { Pool } = pg;
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL, // Render provides this
-  ssl: { rejectUnauthorized: false }          // required by Render Postgres
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
 });
 
-// Function to initialize database and table
 export async function initDB() {
   try {
-    // Create table if it does not exist
-    await pool.query(`
+    const client = await pool.connect();
+    console.log("✅ Database connected");
+
+    // Ensure recordings table exists
+    await client.query(`
       CREATE TABLE IF NOT EXISTS recordings (
         id SERIAL PRIMARY KEY,
         filename TEXT NOT NULL,
         size BIGINT,
-        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        storage_url TEXT,
-        mime_type TEXT
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log("✅ Database initialized and recordings table ready");
+
+    console.log("✅ Table 'recordings' is ready");
+    client.release();
   } catch (err) {
-    console.error("❌ Error initializing database:", err);
+    console.error("❌ Error initializing database:", err.message);
   }
 }
 
-export default pool;
+export { pool };
+

@@ -1,36 +1,39 @@
+// backend/src/index.js
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
-import { initDB } from "./db.js";
+import { initDB, pool } from "./db.js";
 
-dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 
 app.use(cors());
 app.use(express.json());
 
-// Initialize DB + table
+// Initialize DB at startup
 initDB();
 
-// Routes
-app.get("/", (req, res) => {
-  res.send("Backend is running 🚀");
-});
-
-app.get("/api/recordings", async (req, res) => {
+// --- Health check ---
+app.get("/api/health", async (req, res) => {
   try {
-    const result = await req.app.locals.db.query("SELECT * FROM recordings ORDER BY createdAt DESC");
-    res.json(result.rows);
+    const result = await pool.query("SELECT NOW()");
+    res.json({
+      status: "ok ✅",
+      dbTime: result.rows[0].now,
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch recordings" });
+    console.error("❌ Health check failed:", err.message);
+    res.status(500).json({
+      status: "error ❌",
+      message: err.message,
+    });
   }
 });
 
-// Start server
+// Default route
+app.get("/", (req, res) => {
+  res.send("🎉 Screen Recorder Backend is running!");
+});
+
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
-
-
